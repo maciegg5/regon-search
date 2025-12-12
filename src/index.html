@@ -10,9 +10,13 @@
         .animate-spin { animation: spin 1s linear infinite; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+<body class="bg-gray-50 min-h-screen font-sans text-gray-900">
     <div id="root"></div>
-    
+
+    <!-- React i ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
     <script type="module">
         const { createElement: h } = React;
         const { useState } = React;
@@ -25,10 +29,7 @@
 
             const formatNip = (value) => {
                 const digits = value.replace(/\D/g, '');
-                if (digits.length <= 3) return digits;
-                if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-                if (digits.length <= 8) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
-                return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 8)}-${digits.slice(8, 10)}`;
+                return digits;
             };
 
             const searchCompany = async () => {
@@ -68,12 +69,12 @@
                 h('div', { className: 'max-w-4xl mx-auto' },
                     // Header
                     h('div', { className: 'text-center mb-8' },
-                        h('h1', { className: 'text-4xl font-bold text-gray-900 mb-2' }, '🏢 Wyszukiwarka REGON'),
+                        h('h1', { className: 'text-4xl font-bold mb-2' }, 'Wyszukiwarka REGON'),
                         h('p', { className: 'text-gray-600' }, 'Sprawdź dane firmy w bazie GUS')
                     ),
                     
                     // Search
-                    h('div', { className: 'bg-white rounded-lg shadow-lg p-6 mb-6' },
+                    h('div', { className: 'bg-white rounded-lg shadow-md p-6 mb-6' },
                         h('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Numer NIP'),
                         h('div', { className: 'flex gap-2' },
                             h('input', {
@@ -81,15 +82,15 @@
                                 value: nip,
                                 onChange: (e) => setNip(formatNip(e.target.value)),
                                 onKeyPress: (e) => e.key === 'Enter' && searchCompany(),
-                                placeholder: '000-000-00-00',
-                                maxLength: 13,
+                                placeholder: 'Wprowadź NIP',
+                                maxLength: 10,
                                 className: 'flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none'
                             }),
                             h('button', {
                                 onClick: searchCompany,
                                 disabled: loading,
                                 className: 'px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400'
-                            }, loading ? '⏳ Szukam...' : '🔍 Szukaj')
+                            }, loading ? 'Szukam...' : 'Szukaj')
                         ),
                         error && h('div', { className: 'mt-4 p-4 bg-red-50 border border-red-200 rounded-lg' },
                             h('p', { className: 'text-sm text-red-800' }, error)
@@ -98,8 +99,8 @@
                     
                     // Results
                     data && h('div', { className: 'space-y-6' },
-                        h('div', { className: 'bg-white rounded-lg shadow-lg p-6' },
-                            h('h2', { className: 'text-2xl font-bold mb-4 pb-4 border-b' }, '✅ Dane podstawowe'),
+                        h('div', { className: 'bg-white rounded-lg shadow-md p-6' },
+                            h('h2', { className: 'text-2xl font-bold mb-4 pb-2 border-b' }, 'Dane podstawowe'),
                             h('div', { className: 'grid md:grid-cols-2 gap-4' },
                                 Object.entries(data.podstawowe || {}).map(([key, value]) =>
                                     h('div', { key, className: 'border-l-4 border-indigo-500 pl-4 py-2' },
@@ -110,8 +111,8 @@
                             )
                         ),
                         
-                        data.pkd && data.pkd.length > 0 && h('div', { className: 'bg-white rounded-lg shadow-lg p-6' },
-                            h('h2', { className: 'text-2xl font-bold mb-4 pb-4 border-b' }, '📊 Kody PKD'),
+                        data.pkd && data.pkd.length > 0 && h('div', { className: 'bg-white rounded-lg shadow-md p-6' },
+                            h('h2', { className: 'text-2xl font-bold mb-4 pb-2 border-b' }, 'Kody PKD'),
                             h('div', { className: 'space-y-3' },
                                 data.pkd.map((pkd, i) =>
                                     h('div', {
@@ -139,7 +140,5 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(h(App));
     </script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 </body>
 </html>
