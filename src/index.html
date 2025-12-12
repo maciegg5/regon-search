@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyszukiwarka REGON - GUS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div id="root"></div>
+    
+    <script type="module">
+        const { createElement: h } = React;
+        const { useState } = React;
+
+        function App() {
+            const [nip, setNip] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [data, setData] = useState(null);
+
+            const formatNip = (value) => {
+                const digits = value.replace(/\D/g, '');
+                if (digits.length <= 3) return digits;
+                if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+                if (digits.length <= 8) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+                return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 8)}-${digits.slice(8, 10)}`;
+            };
+
+            const searchCompany = async () => {
+                const cleanNip = nip.replace(/\D/g, '');
+                
+                if (cleanNip.length !== 10) {
+                    setError('NIP musi składać się z 10 cyfr');
+                    return;
+                }
+
+                setLoading(true);
+                setError('');
+                setData(null);
+
+                try {
+                    const response = await fetch('/api/regon', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nip: cleanNip }),
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.error) {
+                        setError(result.error);
+                    } else {
+                        setData(result);
+                    }
+                } catch (err) {
+                    setError('Nie udało się połączyć z API: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return h('div', { className: 'py-12 px-4' },
+                h('div', { className: 'max-w-4xl mx-auto' },
+                    // Header
+                    h('div', { className: 'text-center mb-8' },
+                        h('h1', { className: 'text-4xl font-bold text-gray-900 mb-2' }, '🏢 Wyszukiwarka REGON'),
+                        h('p', { className: 'text-gray-600' }, 'Sprawdź dane firmy w bazie GUS')
+                    ),
+                    
+                    // Search
+                    h('div', { className: 'bg-white rounded-lg shadow-lg p-6 mb-6' },
+                        h('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Numer NIP'),
+                        h('div', { className: 'flex gap-2' },
+                            h('input', {
+                                type: 'text',
+                                value: nip,
+                                onChange: (e) => setNip(formatNip(e.target.value)),
+                                onKeyPress: (e) => e.key === 'Enter' && searchCompany(),
+                                placeholder: '000-000-00-00',
+                                maxLength: 13,
+                                className: 'flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none'
+                            }),
+                            h('button', {
+                                onClick: searchCompany,
+                                disabled: loading,
+                                className: 'px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400'
+                            }, loading ? '⏳ Szukam...' : '🔍 Szukaj')
+                        ),
+                        error && h('div', { className: 'mt-4 p-4 bg-red-50 border border-red-200 rounded-lg' },
+                            h('p', { className: 'text-sm text-red-800' }, error)
+                        )
+                    ),
+                    
+                    // Results
+                    data && h('div', { className: 'space-y-6' },
+                        h('div', { className: 'bg-white rounded-lg shadow-lg p-6' },
+                            h('h2', { className: 'text-2xl font-bold mb-4 pb-4 border-b' }, '✅ Dane podstawowe'),
+                            h('div', { className: 'grid md:grid-cols-2 gap-4' },
+                                Object.entries(data.podstawowe || {}).map(([key, value]) =>
+                                    h('div', { key, className: 'border-l-4 border-indigo-500 pl-4 py-2' },
+                                        h('p', { className: 'text-sm text-gray-600 font-medium' }, key),
+                                        h('p', { className: 'text-lg text-gray-900' }, value)
+                                    )
+                                )
+                            )
+                        ),
+                        
+                        data.pkd && data.pkd.length > 0 && h('div', { className: 'bg-white rounded-lg shadow-lg p-6' },
+                            h('h2', { className: 'text-2xl font-bold mb-4 pb-4 border-b' }, '📊 Kody PKD'),
+                            h('div', { className: 'space-y-3' },
+                                data.pkd.map((pkd, i) =>
+                                    h('div', {
+                                        key: i,
+                                        className: `p-4 rounded-lg border-2 ${pkd.Przewazajace === '1' ? 'bg-indigo-50 border-indigo-300' : 'bg-gray-50 border-gray-200'}`
+                                    },
+                                        h('div', { className: 'flex justify-between' },
+                                            h('div', {},
+                                                h('p', { className: 'font-mono text-lg font-bold' }, pkd.Kod),
+                                                h('p', { className: 'text-sm text-gray-700 mt-1' }, pkd.Nazwa)
+                                            ),
+                                            pkd.Przewazajace === '1' && h('span', {
+                                                className: 'px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-full h-fit'
+                                            }, 'Przeważająca')
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(h(App));
+    </script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</body>
+</html>
